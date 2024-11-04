@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autotiktokenizer"
+version = "0.0.1a0"
+description = "🧰 The AutoTokenizer that TikToken always needed -- Load any tokenizer with TikToken now! ✨"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+keywords = ["tokenizer", "transformers", "huggingface", "tiktoken"]
+authors = [
+    {name = "Bhavnick Minhas", email = "bhavnicksm@gmail.com"}
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
+]
+dependencies = [
+    "tokenizers>=0.13.0",
+    "tiktoken>=0.2.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/bhavnicksm/autotiktokenizer"
+
+[project.optional-dependencies]
+dev = ["pytest>=6.2.0"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["autotiktokenizer"]
