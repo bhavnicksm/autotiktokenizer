@@ -45,7 +45,7 @@ AutoTikTokenizer current supports the following models (and their variants) out 
 
 Special thanks to HuggingFace and OpenAI for making their respective open-source libraries that make this work possible. I hope that they would continue to support the developer ecosystem for LLMs in the future! 
 
-**If you found this repository useful, I would appriciate if you could star this repository and boost it on Socials so a greater audience could benefit from this. Thank you so much! :)**
+**If you found this repository useful, give it a ⭐️! Thank You :)**
 
 # Citation
 
