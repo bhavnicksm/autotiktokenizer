@@ -1,3 +1,4 @@
+![AutoTikTokenizer Logo](./assets/AutoTikTokenizer%20Logo.png)
 # AutoTikTokenizer
 
 A great way to leverage the speed and lightweight of OpenAI's TikToken with the universal support of HuggingFace's Tokenizers. Now, you can run ANY tokenizer at 3-6x the speed out of the box!
