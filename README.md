@@ -38,8 +38,7 @@ AutoTikTokenizer current supports the following models (and their variants) out 
 - [x] LLaMa 3 Family: LLama-3.2-1B-Instruct, LLama-3.2-3B-Instruct, LLama-3.1-8B-Instruct etc.
 - [x] Deepseek Family: Deepseek-v2.5 etc 
 - [x] Gemma2 Family: Gemma2-2b-It, Gemma2-9b-it etc
-- [ ] Mistral Family: Mistral-7B-Instruct-v0.3 
-
+- [x] Mistral Family: Mistral-7B-Instruct-v0.3 etc
 
 # Acknoledgement
 
