@@ -4,12 +4,12 @@ from autotiktokenizer import AutoTikTokenizer
 
 @pytest.fixture
 def tiktokenizer():
-    encoder = AutoTikTokenizer.from_pretrained('NousResearch/Hermes-3-Llama-3.1-8B')
+    encoder = AutoTikTokenizer.from_pretrained('unsloth/Llama-3.2-3B-Instruct')
     return encoder
 
 @pytest.fixture
 def tokenizer():
-    return Tokenizer.from_pretrained('NousResearch/Hermes-3-Llama-3.1-8B')
+    return Tokenizer.from_pretrained('unsloth/Llama-3.2-3B-Instruct')
 
 def test_simple_sentence(tiktokenizer, tokenizer):
     sentence = "Hey, I am Bhavnick Singh Minhas and I am building a tool to use TikToken tokenizers."
