@@ -59,7 +59,10 @@ class _AutoTikTokenizer:
     
     def _normalize_token_bytes(self, token):
         """Convert bytes to unicode."""
-        result = bytearray([self.bytes_decoder[b] for b in token])
+        try:
+          result = bytearray([self.bytes_decoder[b] for b in token])
+        except Exception:
+          result = token.encode()
         result = bytes(result)
         return result
 
@@ -68,6 +71,11 @@ class _AutoTikTokenizer:
         self.mergeable_ranks = {}
         sorted_vocab = sorted(vocab.items(), key=lambda x: x[1])
         for rank, (token, _) in enumerate(sorted_vocab, start=0):
+            # For uniformity, will convert any sentencepiece like beginnings
+            # into standard HF Ġ format
+            if token.startswith('▁'):
+                token = token.replace('▁', 'Ġ')
+
             if token not in special_tokens:
                 key = self._normalize_token_bytes(token)
             else:
