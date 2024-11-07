@@ -6,6 +6,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/autotiktokenizer.svg)](https://pypi.org/project/autotiktokenizer/)
 [![Downloads](https://static.pepy.tech/badge/autotiktokenizer)](https://pepy.tech/project/autotiktokenizer)
+![Package size](https://img.shields.io/badge/size-17MB-blue)
 [![License](https://img.shields.io/github/license/bhavnicksm/autotiktokenizer)](https://github.com/bhavnicksm/autotiktokenizer/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](https://github.com/bhavnicksm/autotiktokenizer#readme)
 [![Last Commit](https://img.shields.io/github/last-commit/bhavnicksm/autotiktokenizer)](https://github.com/bhavnicksm/autotiktokenizer/commits/main)
@@ -19,6 +20,16 @@ A great way to leverage the speed and lightweight of OpenAI's TikToken with the 
 [Citation](#citation) 
 
 </div>
+
+# ✨ Key Features
+
+
+- 🚀 **High Performance** - Built on TikToken's efficient tokenization engine
+- 🔄 **HuggingFace Compatible** - Seamless integration with the HuggingFace ecosystem
+- 📦 **Lightweight** - Minimal dependencies, just TikToken and Tokenizers
+- 🎯 **Easy to Use** - Simple, intuitive API that works out of the box
+- 💻 **Well Tested** - Comprehensive test suite across supported models
+
 
 # Installation
 
