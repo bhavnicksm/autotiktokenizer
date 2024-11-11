@@ -6,19 +6,30 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/autotiktokenizer.svg)](https://pypi.org/project/autotiktokenizer/)
 [![Downloads](https://static.pepy.tech/badge/autotiktokenizer)](https://pepy.tech/project/autotiktokenizer)
+![Package size](https://img.shields.io/badge/size-9.7MB-blue)
 [![License](https://img.shields.io/github/license/bhavnicksm/autotiktokenizer)](https://github.com/bhavnicksm/autotiktokenizer/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](https://github.com/bhavnicksm/autotiktokenizer#readme)
 [![Last Commit](https://img.shields.io/github/last-commit/bhavnicksm/autotiktokenizer)](https://github.com/bhavnicksm/autotiktokenizer/commits/main)
 [![GitHub Stars](https://img.shields.io/github/stars/bhavnicksm/autotiktokenizer?style=social)](https://github.com/bhavnicksm/autotiktokenizer/stargazers)
 
-A great way to leverage the speed and lightweight of OpenAI's TikToken with the universal support of HuggingFace's Tokenizers. Now, you can run ANY tokenizer at 3-6x the speed out of the box!
+🚀 Accelerate your HuggingFace tokenizers by converting them to TikToken format with AutoTikTokenizer - get TikToken's speed while keeping HuggingFace's flexibility.
 
+[Features](#key-features) •
 [Installation](#installation) •
 [Examples](#examples) •
 [Supported Models](#supported-models) •
-[Citation](#citation) 
+[Benchmarks](#benchmarks) •
+[Citation](#citation)
 
 </div>
+
+# Key Features
+
+- 🚀 **High Performance** - Built on TikToken's efficient tokenization engine
+- 🔄 **HuggingFace Compatible** - Seamless integration with the HuggingFace ecosystem
+- 📦 **Lightweight** - Minimal dependencies, just TikToken and Huggingface-hub
+- 🎯 **Easy to Use** - Simple, intuitive API that works out of the box
+- 💻 **Well Tested** - Comprehensive test suite across supported models
 
 # Installation
 
@@ -68,9 +79,23 @@ AutoTikTokenizer current supports the following models (and their variants) out 
 
 **NOTE:** Some models use the _unigram_ tokenizers, which are not supported with TikToken and hence, 🧰 AutoTikTokenizer cannot convert the tokenizers for such models. Some models that use _unigram_ tokenizers include T5, ALBERT, Marian and XLNet. 
 
+# Benchmarks
+
+Benchmarking results for tokenizing **1 billion tokens** from fineweb-edu dataset using **Llama 3.2 tokenizer** on CPU (Google colab)
+
+| Configuration | Processing Type | AutoTikTokenizer | HuggingFace | Speed Ratio | 
+|--------------|-----------------|------------------|--------------|-------------|
+| Single Thread | Sequential | **14:58** (898s) | 40:43 (2443s) | 2.72x faster |
+| Batch x1 | Batched | 15:58 (958s) | **10:30** (630s) | 0.66x slower |
+| Batch x4 | Batched | **8:00** (480s) | 10:30 (630s) | 1.31x faster |
+| Batch x8 | Batched | **6:32** (392s) | 10:30 (630s) | 1.62x faster |
+| 4 Processes | Parallel | **2:34** (154s) | 8:59 (539s) | 3.50x faster |
+
+The above table shows that AutoTikTokenizer's tokenizer (TikToken) is actually way faster than HuggingFace's Tokenizer by 1.6-3.5 times under fair comparison! While, it's not making the most optimal use of TikToken (yet), its still way faster than the stock solutions you might be getting otherwise.
+
 # Acknowledgement
 
-Special thanks to HuggingFace and OpenAI for making their respective open-source libraries that make this work possible. I hope that they would continue to support the developer ecosystem for LLMs in the future! 
+Special thanks to HuggingFace and OpenAI for making their respective open-source libraries that make this work possible. I hope that they would continue to support the developer ecosystem for LLMs in the future!
 
 **If you found this repository useful, give it a ⭐️! Thank You :)**
 
@@ -78,7 +103,7 @@ Special thanks to HuggingFace and OpenAI for making their respective open-source
 
 If you use `autotiktokenizer` in your research, please cite it as follows:
 
-```
+```bibtex
 @misc{autotiktokenizer,
     author = {Bhavnick Minhas},
     title = {AutoTikTokenizer},
