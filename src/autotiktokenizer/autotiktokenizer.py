@@ -40,7 +40,7 @@ class AutoTikTokenizer:
         self.bytes_encoder = self._bytes_to_unicode()
         self.bytes_decoder = {v:k for k,v in self.bytes_encoder.items()}
     
-    def _bytes_to_unicode(self):
+    def _bytes_to_unicode(self) -> Dict[int, str]:
         """
         Returns list of utf-8 byte and a corresponding list of unicode strings.
         The reversible bpe codes work on unicode strings.
@@ -49,6 +49,9 @@ class AutoTikTokenizer:
         This is a signficant percentage of your normal, say, 32K bpe vocab.
         To avoid that, we want lookup tables between utf-8 bytes and unicode strings.
         And avoids mapping to whitespace/control characters the bpe code barfs on.
+
+        Returns:
+            dict: A dictionary of utf-8 bytes and corresponding unicode strings.
         """
         bs = list(range(ord("!"), ord("~")+1))+list(range(ord("¡"), ord("¬")+1))+list(range(ord("®"), ord("ÿ")+1))
         cs = bs[:]
@@ -62,7 +65,7 @@ class AutoTikTokenizer:
         return dict(zip(bs, cs))
 
     def _download_from_hf_hub(self,
-                              repo_name: str):
+                              repo_name: str) -> str:
         """
         Downloads the necessary files from the HuggingFace Hub for the tokenizer.
 
@@ -88,7 +91,7 @@ class AutoTikTokenizer:
 
         return path
     
-    def _normalize_token_bytes(self, token):
+    def _normalize_token_bytes(self, token: str) -> bytes:
         """Convert bytes to unicode.
         
         Args:
@@ -104,7 +107,11 @@ class AutoTikTokenizer:
         result = bytes(result)
         return result
 
-    def _get_mergeable_ranks(self, vocab, special_tokens):
+
+    def _get_mergeable_ranks(self,
+                             vocab: Dict[str, int],
+                             special_tokens: Dict[str, int],
+                             tokenizer_type: str) -> Dict[str, int]:
         """Convert vocab to binary mergeable_ranks.
         
         Args:
@@ -117,10 +124,18 @@ class AutoTikTokenizer:
         mergeable_ranks = {}
         sorted_vocab = sorted(vocab.items(), key=lambda x: x[1])
         for rank, (token, _) in enumerate(sorted_vocab, start=0):
-            # For uniformity, will convert any sentencepiece like beginnings
-            # into standard HF Ġ format
-            if token.startswith('▁'):
-                token = token.replace('▁', 'Ġ')
+            # Converting wordpiece to equivalent std BPE form
+            if tokenizer_type == 'wordpiece':
+                if token.startswith('##'):
+                    token = token[2:]
+                else:
+                    token = 'Ġ' + token
+            elif tokenizer_type == 'bpe':
+              # For uniformity, will convert any sentencepiece like beginnings
+              # into standard HF Ġ format
+              if token.startswith('▁'):
+                  token = token.replace('▁', 'Ġ')
+
             if token not in special_tokens:
                 key = self._normalize_token_bytes(token)
             else:
@@ -169,17 +184,21 @@ class AutoTikTokenizer:
           special_tokens = {}
         return special_tokens
 
-    def _get_pattern_str(self) -> str:
+    def _get_pattern_str(self, tokenizer_type: str) -> str:
         """
         Returns the regex pattern used for tokenization.
-
+        Args:
+            tokenizer_config (dict): The configuration of the tokenizer.
         Returns:
-            pattern (str): The regex pattern used for tokenization.
+            str: The regex pattern used for tokenization.
         """
-        self.pattern = r'(?:[sdmt]|ll|ve|re)| ?\p{L}++| ?\p{N}++| ?[^\s\p{L}\p{N}]++|\s++$|\s+(?!\S)|\s'
-        return self.pattern
+        if tokenizer_type == 'wordpiece':
+            pattern = r'[!-/:-@\[-`{-~]|[^\s!-/:-@\[-`{-~]+'
+        else:
+            pattern = r'(?:[sdmt]|ll|ve|re)| ?\p{L}++| ?\p{N}++| ?[^\s\p{L}\p{N}]++|\s++$|\s+(?!\S)|\s'
+        return pattern
     
-    def _read_json(self, path):
+    def _read_json(self, path: str) -> Dict:
         """
         Reads a JSON file and returns the contents.
         
@@ -216,6 +235,23 @@ class AutoTikTokenizer:
             special_tokens=special_tokens,
         )
         return encoding
+    
+    def _detect_tokenizer_type(self, tokenizer: Dict,  tokenizer_config: Dict) -> str:
+        """
+        Detects whether the tokenizer is WordPiece or BPE based.
+
+        Args:
+            tokenizer (Dict): The tokenizer dictionary.
+            tokenizer_config (Dict): The tokenizer configuration dictionary.
+
+        Returns:
+            str: The tokenizer type ('wordpiece' or 'bpe').
+        """
+        if tokenizer_config.get('tokenizer_class', '').lower() in ['berttokenizer', 'wordpiece']:
+            return 'wordpiece'
+        if tokenizer.get('model', '').get('type', '').lower() == 'wordpiece':
+            return 'wordpiece'
+        return 'bpe'
 
     @classmethod
     def from_pretrained(cls, tokenizer_name_or_path: str) -> tiktoken.Encoding:
@@ -228,12 +264,12 @@ class AutoTikTokenizer:
         Returns:
             encoding (Encoding): The TikToken encoding.
         """
-        #init instance 
+        #init instance
         instance = cls()
 
         # Download the files from the hub
         path = instance._download_from_hf_hub(tokenizer_name_or_path)
-        
+
         # Load the tokenizer dictionary
         tokenizer = instance._read_json(path + '/' + 'tokenizer.json')
 
@@ -244,16 +280,19 @@ class AutoTikTokenizer:
         special_tokens = instance._get_special_tokens(tokenizer)
 
         # Load the tokenizer config
-        # tokenizer_config = instance._read_json(path + '/' + 'tokenizer_config.json')
+        tokenizer_config = instance._read_json(path + '/' + 'tokenizer_config.json')
+
+        # Detect the tokenizer type
+        tokenizer_type = instance._detect_tokenizer_type(tokenizer, tokenizer_config)
 
         #Load the name
         name = tokenizer_name_or_path.split('/')[-1]
 
         # Get the mergeable ranks from the vocab and special_tokens
-        mergeable_ranks = instance._get_mergeable_ranks(vocab, special_tokens)
+        mergeable_ranks = instance._get_mergeable_ranks(vocab, special_tokens, tokenizer_type)
 
         # Get the pattern string
-        pattern = instance._get_pattern_str()
+        pattern = instance._get_pattern_str(tokenizer_type)
 
         return instance._get_tiktoken_encoding(name, pattern, mergeable_ranks, special_tokens)
 
