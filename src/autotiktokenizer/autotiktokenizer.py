@@ -1,13 +1,15 @@
-from tokenizers import Tokenizer
+from typing import Dict
+import os 
 import json
+
 import tiktoken
-
-
-class _AutoTikTokenizer:
+from huggingface_hub import snapshot_download
+class AutoTikTokenizer:
     """
     _AutoTikTokenizer is a class designed to interface with HuggingFace tokenizers to provide a TikToken tokenizer
     that can be used for the tokenization process. It mimics the functionality of AutoTokenizer in HuggingFace
     but is tailored for TikToken.
+
     Attributes:
         tokenizer (Tokenizer): The HuggingFace tokenizer instance.
         name (str): The name of the tokenizer.
@@ -16,6 +18,7 @@ class _AutoTikTokenizer:
         mergeable_ranks (dict): The mergeable ranks of tokens in binary format.
         special_tokens (dict): The special tokens used by the tokenizer.
         pattern (str): The regex pattern used for tokenization.
+
     Methods:
         __init__():
             Initializes the _AutoTikTokenizer with default values.
@@ -33,6 +36,7 @@ class _AutoTikTokenizer:
             Returns the TikToken encoding.
     """
     def __init__(self) -> None:
+        # Initialize BYTES encoder and decoder for unicode conversion
         self.bytes_encoder = self._bytes_to_unicode()
         self.bytes_decoder = {v:k for k,v in self.bytes_encoder.items()}
     
@@ -56,9 +60,43 @@ class _AutoTikTokenizer:
                 n += 1
         cs = [chr(n) for n in cs]
         return dict(zip(bs, cs))
+
+    def _download_from_hf_hub(self,
+                              repo_name: str):
+        """
+        Downloads the necessary files from the HuggingFace Hub for the tokenizer.
+
+        Args:
+            repo_name (str): The name of the repository to download the files from.
+        
+        Returns:
+            path (str): The path to the downloaded files.
+        """ 
+
+        # Download all the necessary files from HF Hub
+        files_needed = ['config.json', 'tokenizer.json', 'tokenizer_config.json', 'vocab.json', 'merges.txt']
+        path = snapshot_download(repo_id=repo_name, allow_patterns=files_needed)
+        files_downloaded = os.listdir(path)
+
+        # Assertions to make sure the necessary files are there
+        assert 'config.json' in files_downloaded, \
+                "config.json not found in downloaded files"
+        assert 'tokenizer.json' in files_downloaded or 'vocab.json' in files_downloaded,\
+                "tokenizer.json not found in downloaded files"
+        assert 'tokenizer_config.json' in files_downloaded, \
+                "tokenizer_config.json not found in downloaded files"
+
+        return path
     
     def _normalize_token_bytes(self, token):
-        """Convert bytes to unicode."""
+        """Convert bytes to unicode.
+        
+        Args:
+            token (str): The token to convert.
+        
+        Returns:
+            result (bytes): The converted token.
+        """
         try:
           result = bytearray([self.bytes_decoder[b] for b in token])
         except Exception:
@@ -66,61 +104,161 @@ class _AutoTikTokenizer:
         result = bytes(result)
         return result
 
-    def get_mergable_ranks(self, vocab, special_tokens):
-        """Convert vocab to binary mergeable_ranks."""
-        self.mergeable_ranks = {}
+    def _get_mergeable_ranks(self, vocab, special_tokens):
+        """Convert vocab to binary mergeable_ranks.
+        
+        Args:
+            vocab (dict): The vocabulary of the tokenizer.
+            special_tokens (dict): The special tokens used by the tokenizer.
+        
+        Returns:
+            mergeable_ranks (dict): The mergeable ranks of tokens in binary format.
+        """
+        mergeable_ranks = {}
         sorted_vocab = sorted(vocab.items(), key=lambda x: x[1])
         for rank, (token, _) in enumerate(sorted_vocab, start=0):
             # For uniformity, will convert any sentencepiece like beginnings
             # into standard HF Ġ format
             if token.startswith('▁'):
                 token = token.replace('▁', 'Ġ')
-
             if token not in special_tokens:
                 key = self._normalize_token_bytes(token)
             else:
                 key = token.encode()
-            self.mergeable_ranks[key] = rank
-        return self.mergeable_ranks
+            mergeable_ranks[key] = rank
+        return mergeable_ranks
 
-    def get_special_tokens(self):
-        self.special_tokens = {}
-        sp = self.tokenizer.get_added_tokens_decoder()
-        for idx, token in sp.items():
-            self.special_tokens[token.content] = idx
-        return self.special_tokens
+    def _get_vocab(self, tokenizer: Dict, path: str) -> Dict[str, int]:
+        """
+        Returns the vocabulary of the tokenizer.
 
-    def get_pattern_str(self):
+        Args:
+            tokenizer (dict): The tokenizer dictionary.
+            path (str): The path to the tokenizer files.
+        
+        Returns:
+            vocab (dict): The vocabulary of the tokenizer.
+        """
+        try:
+          vocab = tokenizer['model']['vocab']
+        except KeyError:
+          raise Warning("No vocab found inside tokenizer.json" + \
+                        "Trying to load vocab from vocab.json")
+          try:
+            vocab = self._read_json(path + '/' + 'vocab.json')
+          except Exception:
+            raise Exception("Vocab not found in tokenizer.json or vocab.json")
+
+        return vocab
+
+    def _get_special_tokens(self, tokenizer: Dict) -> Dict[str, int]:
+        """
+        Returns the special tokens used by the tokenizer.
+
+        Args:
+            tokenizer (dict): The tokenizer dictionary.
+            
+        Returns:
+            special_tokens (dict): The special tokens used by the tokenizer.
+        """
+
+        try:
+          special_tokens = {at['content'] : at['id'] for at in tokenizer['added_tokens']}
+        except KeyError:
+          raise Warning("No special tokens found inside tokenizer.json")
+          special_tokens = {}
+        return special_tokens
+
+    def _get_pattern_str(self) -> str:
+        """
+        Returns the regex pattern used for tokenization.
+
+        Returns:
+            pattern (str): The regex pattern used for tokenization.
+        """
         self.pattern = r'(?:[sdmt]|ll|ve|re)| ?\p{L}++| ?\p{N}++| ?[^\s\p{L}\p{N}]++|\s++$|\s+(?!\S)|\s'
         return self.pattern
+    
+    def _read_json(self, path):
+        """
+        Reads a JSON file and returns the contents.
+        
+        Args:
+            path (str): The path to the JSON file.
+            
+        Returns:
+            contents (dict): The contents of the JSON file."""
+        with open(path, 'r') as f:
+            return json.load(f)
 
-    def get_tiktoken_encoding(self, vocab):
-        special_tokens = self.get_special_tokens()
-        mergeable_ranks = self.get_mergable_ranks(vocab, special_tokens)
-        pattern = self.get_pattern_str()
+    def _get_tiktoken_encoding(self,
+                               name: str,
+                               pattern: str,
+                               mergeable_ranks: Dict[str, int],
+                               special_tokens: Dict[str, int]) -> tiktoken.Encoding:
+        """
+        Constructs and returns a TikToken encoding using the tokenizer's attributes.
+        
+        Args:
+            name (str): The name of the tokenizer.
+            pattern (str): The regex pattern used for tokenization.
+            mergeable_ranks (dict): The mergeable ranks of tokens in binary format.
+            special_tokens (dict): The special tokens used by the tokenizer.
+        
+        Returns:
+            encoding (Encoding): The TikToken encoding.
+        """
 
         encoding = tiktoken.Encoding(
-            self.name,
+            name,
             pat_str=pattern,
             mergeable_ranks=mergeable_ranks,
             special_tokens=special_tokens,
         )
-
         return encoding
 
-    def from_pretrained(self, tokenizer_name_or_path: str):
-        self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = Tokenizer.from_pretrained(tokenizer_name_or_path)
-        vocab = self.tokenizer.get_vocab()
+    @classmethod
+    def from_pretrained(cls, tokenizer_name_or_path: str) -> tiktoken.Encoding:
+        """
+        Loads a pretrained tokenizer from the specified path or name and returns the TikToken encoding.
 
-        self.tokenizer_config = dict(json.loads(self.tokenizer.to_str()))
-        self.name = self.tokenizer_name_or_path.split('/')[-1]
-        return self.get_tiktoken_encoding(vocab)
+        Args:
+            tokenizer_name_or_path (str): The name or path of the pretrained tokenizer.
 
-    def __call__(self, tokenizer_name_or_path: str):
+        Returns:
+            encoding (Encoding): The TikToken encoding.
+        """
+        #init instance 
+        instance = cls()
+
+        # Download the files from the hub
+        path = instance._download_from_hf_hub(tokenizer_name_or_path)
+        
+        # Load the tokenizer dictionary
+        tokenizer = instance._read_json(path + '/' + 'tokenizer.json')
+
+        # Load the vocab from the tokenizer
+        vocab = instance._get_vocab(tokenizer, path)
+
+        # Load the added_tokens from the tokenizer.json
+        special_tokens = instance._get_special_tokens(tokenizer)
+
+        # Load the tokenizer config
+        # tokenizer_config = instance._read_json(path + '/' + 'tokenizer_config.json')
+
+        #Load the name
+        name = tokenizer_name_or_path.split('/')[-1]
+
+        # Get the mergeable ranks from the vocab and special_tokens
+        mergeable_ranks = instance._get_mergeable_ranks(vocab, special_tokens)
+
+        # Get the pattern string
+        pattern = instance._get_pattern_str()
+
+        return instance._get_tiktoken_encoding(name, pattern, mergeable_ranks, special_tokens)
+
+    def __call__(self, tokenizer_name_or_path: str) -> tiktoken.Encoding:
       return self.from_pretrained(tokenizer_name_or_path)
     
     def __repr__(self) -> str:
         return "AutoTikTokenizer"
-
-AutoTikTokenizer = _AutoTikTokenizer()
