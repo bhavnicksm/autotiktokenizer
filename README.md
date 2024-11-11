@@ -19,6 +19,7 @@
 [Examples](#examples) •
 [Supported Models](#supported-models) •
 [Benchmarks](#benchmarks) •
+[Sharp Bits](#sharp-bits) •
 [Citation](#citation)
 
 </div>
@@ -93,6 +94,12 @@ Benchmarking results for tokenizing **1 billion tokens** from fineweb-edu datase
 | 4 Processes | Parallel | **2:34** (154s) | 8:59 (539s) | 3.50x faster |
 
 The above table shows that AutoTikTokenizer's tokenizer (TikToken) is actually way faster than HuggingFace's Tokenizer by 1.6-3.5 times under fair comparison! While, it's not making the most optimal use of TikToken (yet), its still way faster than the stock solutions you might be getting otherwise.
+
+# Sharp Bits
+
+A known issue of the repository is that it does not do any pre-processing or post-processing, which means that if a certain tokenizer (like `minilm`) expect all lower-case letters only, then you would need to convert it to lower case manually. Similarly, any spaces added in the process are not removed during decoding, so they need to handle them on your own. 
+
+There might be more sharp bits to the repository which are unknown at the moment, please raise an issue if you encounter any!
 
 # Acknowledgement
 
