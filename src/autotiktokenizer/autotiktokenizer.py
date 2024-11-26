@@ -4,6 +4,7 @@ import json
 
 import tiktoken
 from huggingface_hub import snapshot_download
+
 class AutoTikTokenizer:
     """
     _AutoTikTokenizer is a class designed to interface with HuggingFace tokenizers to provide a TikToken tokenizer
@@ -267,11 +268,17 @@ class AutoTikTokenizer:
         #init instance
         instance = cls()
 
-        # Download the files from the hub
-        path = instance._download_from_hf_hub(tokenizer_name_or_path)
-
-        # Load the tokenizer dictionary
-        tokenizer = instance._read_json(os.path.join(path, 'tokenizer.json'))
+        # Load from a local directory
+        path = tokenizer_name_or_path
+        if os.path.isfile(os.path.join(tokenizer_name_or_path, 'tokenizer.json')) :
+            tokenizer = instance._read_json(os.path.join(tokenizer_name_or_path, 'tokenizer.json'))
+        else:
+            try : 
+                path = instance._download_from_hf_hub(tokenizer_name_or_path)
+                tokenizer = instance._read_json(os.path.join(path, 'tokenizer.json'))
+            except Exception as e:
+                print("Tokenizer could not be loaded from a local directory nor from the hub")
+                raise e
 
         # Load the vocab from the tokenizer
         vocab = instance._get_vocab(tokenizer, path)
