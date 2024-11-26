@@ -269,9 +269,9 @@ class AutoTikTokenizer:
         instance = cls()
 
         # Load from a local directory
-        config_file = os.path.join(tokenizer_name_or_path, 'tokenizer.json')
-        if os.path.isfile(config_file) :
-            tokenizer = instance._read_json(config_file)
+        path = os.path.join(tokenizer_name_or_path, 'tokenizer.json')
+        if os.path.isfile(path) :
+            tokenizer = instance._read_json(path)
         else:
             try : 
                 path = instance._download_from_hf_hub(tokenizer_name_or_path)
