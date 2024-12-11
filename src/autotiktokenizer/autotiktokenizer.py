@@ -4,6 +4,7 @@ import json
 
 import tiktoken
 from huggingface_hub import snapshot_download
+
 class AutoTikTokenizer:
     """
     _AutoTikTokenizer is a class designed to interface with HuggingFace tokenizers to provide a TikToken tokenizer
@@ -160,7 +161,7 @@ class AutoTikTokenizer:
           raise Warning("No vocab found inside tokenizer.json" + \
                         "Trying to load vocab from vocab.json")
           try:
-            vocab = self._read_json(path + '/' + 'vocab.json')
+            vocab = self._read_json(os.path.join(path,'vocab.json'))
           except Exception:
             raise Exception("Vocab not found in tokenizer.json or vocab.json")
 
@@ -207,7 +208,7 @@ class AutoTikTokenizer:
             
         Returns:
             contents (dict): The contents of the JSON file."""
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding="utf-8") as f:
             return json.load(f)
 
     def _get_tiktoken_encoding(self,
@@ -267,11 +268,17 @@ class AutoTikTokenizer:
         #init instance
         instance = cls()
 
-        # Download the files from the hub
-        path = instance._download_from_hf_hub(tokenizer_name_or_path)
-
-        # Load the tokenizer dictionary
-        tokenizer = instance._read_json(path + '/' + 'tokenizer.json')
+        # Load from a local directory
+        path = tokenizer_name_or_path
+        if os.path.isfile(os.path.join(tokenizer_name_or_path, 'tokenizer.json')) :
+            tokenizer = instance._read_json(os.path.join(tokenizer_name_or_path, 'tokenizer.json'))
+        else:
+            try : 
+                path = instance._download_from_hf_hub(tokenizer_name_or_path)
+                tokenizer = instance._read_json(os.path.join(path, 'tokenizer.json'))
+            except Exception as e:
+                print("Tokenizer could not be loaded from a local directory nor from the hub")
+                raise e
 
         # Load the vocab from the tokenizer
         vocab = instance._get_vocab(tokenizer, path)
@@ -280,7 +287,7 @@ class AutoTikTokenizer:
         special_tokens = instance._get_special_tokens(tokenizer)
 
         # Load the tokenizer config
-        tokenizer_config = instance._read_json(path + '/' + 'tokenizer_config.json')
+        tokenizer_config = instance._read_json(os.path.join(path,'tokenizer_config.json'))
 
         # Detect the tokenizer type
         tokenizer_type = instance._detect_tokenizer_type(tokenizer, tokenizer_config)
